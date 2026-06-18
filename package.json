@@ -1,0 +1,16 @@
+{
+  "name": "fitscouter",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "web",
+    "native"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace @fitscouter/web run dev",
+    "dev:native": "npm --workspace @fitscouter/native run start",
+    "build": "npm --workspace @fitscouter/web run build",
+    "preview:web": "npm --workspace @fitscouter/web run preview",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

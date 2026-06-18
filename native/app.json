@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "FitScouter",
+    "slug": "fitscouter",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "전신 OOTD 사진을 촬영하기 위해 카메라를 사용합니다.",
+        "NSPhotoLibraryUsageDescription": "OOTD로 만들 사진을 선택하기 위해 사진 보관함을 사용합니다."
+      }
+    },
+    "android": {
+      "permissions": ["CAMERA", "READ_MEDIA_IMAGES"]
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "OOTD로 만들 사진을 선택하기 위해 사진 보관함을 사용합니다.",
+          "cameraPermission": "전신 OOTD 사진을 촬영하기 위해 카메라를 사용합니다."
+        }
+      ]
+    ]
+  }
+}
