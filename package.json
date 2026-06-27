@@ -11,6 +11,7 @@
     "dev:native": "npm --workspace @fitscouter/native run start",
     "build": "npm --workspace @fitscouter/web run build",
     "preview:web": "npm --workspace @fitscouter/web run preview",
+    "ollama:check": "node tools/ollama-smoke-test.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present"
   }
 }

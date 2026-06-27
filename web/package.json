@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --config vite.config.ts --host 0.0.0.0",
+    "dev": "vite --config vite.config.ts",
+    "dev:lan": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "tsc -b && vite build --config vite.config.ts",
-    "preview": "vite preview --config vite.config.ts --host 0.0.0.0",
+    "preview": "vite preview --config vite.config.ts",
+    "preview:lan": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
