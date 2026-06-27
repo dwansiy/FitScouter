@@ -15,6 +15,7 @@
     "build": "npm --workspace @fitscouter/web run build",
     "preview:web": "npm --workspace @fitscouter/web run preview",
     "ollama:check": "node tools/ollama-smoke-test.mjs",
+    "proxy:ollama": "node server/ollama-proxy.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present"
   }
 }

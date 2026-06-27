@@ -4,7 +4,7 @@ type Screen = 'upload' | 'loading' | 'result'
 type Sheet = 'analysis' | 'improve' | null
 type ScenarioId = 'date' | 'business' | 'workout' | 'street'
 type Variant = 'base' | 'derby' | 'scarf' | 'bag'
-type AnalysisSource = 'mock' | 'ollama'
+type AnalysisSource = 'mock' | 'ollama' | 'proxy'
 type OllamaStatus = 'idle' | 'checking' | 'analyzing' | 'ready' | 'unavailable' | 'error'
 
 type ScoreRow = { label: string; score: number; max: number; note: string }
@@ -24,7 +24,9 @@ const assetUrl = (fileName: string) => `${import.meta.env.BASE_URL}assets/${file
 const samplePhoto = assetUrl('sample-ootd.jpg')
 const ollamaEndpoint = 'http://127.0.0.1:11434'
 const ollamaModel = 'gemma3:4b'
-const hostedOllamaMessage = 'GitHub Pages는 정적 배포라 로컬 Ollama 모델이 포함되지 않습니다. PC에서 npm run dev:web로 열면 LOCAL AI를 확인할 수 있어요.'
+const defaultAiProxyEndpoint = 'http://127.0.0.1:8787/api/analyze'
+const configuredAiProxyEndpoint = String(import.meta.env.VITE_AI_PROXY_URL ?? '').trim()
+const hostedOllamaMessage = '이 PC에서 npm run proxy:ollama를 실행하면 배포 URL에서도 로컬 Ollama 분석을 사용할 수 있어요.'
 
 const scenarios: Array<{ id: ScenarioId; label: string; hint: string }> = [
   { id: 'date', label: '소개팅', hint: '첫인상 집중' },
@@ -293,6 +295,12 @@ function isLocalOllamaAvailableFromThisOrigin() {
   return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === ''
 }
 
+function getAiProxyEndpoint() {
+  if (configuredAiProxyEndpoint) return configuredAiProxyEndpoint
+  if (window.location.protocol === 'https:') return defaultAiProxyEndpoint
+  return ''
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>('upload')
   const [sheet, setSheet] = useState<Sheet>(null)
@@ -367,37 +375,41 @@ export default function App() {
   async function runOllamaAnalysis() {
     setOllamaStatus('checking')
     setOllamaError('')
-    if (!isLocalOllamaAvailableFromThisOrigin()) {
-      setOllamaStatus('unavailable')
-      setOllamaError('')
-      setOllamaAnalysis(null)
-      setAnalysisSource('mock')
-      return
-    }
     try {
       const imageBase64 = sourceBase64 ?? await imageUrlToBase64(samplePhoto)
       setOllamaStatus('analyzing')
       const controller = new AbortController()
       const timeout = window.setTimeout(() => controller.abort(), 120000)
-      const response = await fetch(`${ollamaEndpoint}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: ollamaModel,
-          prompt: buildOllamaPrompt(scenarioLabel),
-          images: [imageBase64],
-          stream: false,
-          format: 'json',
-          options: { temperature: 0.2 },
-        }),
-        signal: controller.signal,
-      })
+      const proxyEndpoint = getAiProxyEndpoint()
+      const response = proxyEndpoint
+        ? await fetch(proxyEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64, scenario: scenarioLabel }),
+          signal: controller.signal,
+        })
+        : isLocalOllamaAvailableFromThisOrigin()
+          ? await fetch(`${ollamaEndpoint}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: ollamaModel,
+              prompt: buildOllamaPrompt(scenarioLabel),
+              images: [imageBase64],
+              stream: false,
+              format: 'json',
+              options: { temperature: 0.2 },
+            }),
+            signal: controller.signal,
+          })
+          : null
       window.clearTimeout(timeout)
-      if (!response.ok) throw new Error(`Ollama responded ${response.status}`)
+      if (!response) throw new Error('AI proxy is not configured')
+      if (!response.ok) throw new Error(`AI analysis server responded ${response.status}`)
       const payload = await response.json() as { response?: string }
       const normalized = normalizeOllamaAnalysis(payload.response ?? '', scenarioLabel)
       setOllamaAnalysis(normalized)
-      setAnalysisSource('ollama')
+      setAnalysisSource(proxyEndpoint ? 'proxy' : 'ollama')
       setOllamaStatus('ready')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Ollama analysis failed'
@@ -463,11 +475,11 @@ export default function App() {
 
   if (screen === 'loading') {
     const stage = ollamaStatus === 'checking'
-      ? '로컬 Ollama 연결을 확인하고 있어요'
+      ? 'AI 분석 서버 연결을 확인하고 있어요'
       : ollamaStatus === 'analyzing'
-        ? `${ollamaModel} 모델이 사진을 읽고 있어요`
+        ? `${getAiProxyEndpoint() ? '로컬 프록시' : ollamaModel}가 사진을 읽고 있어요`
         : ollamaStatus === 'unavailable'
-          ? 'Ollama가 없어 기본 분석으로 전환하고 있어요'
+          ? 'AI 분석 서버가 없어 기본 분석으로 전환하고 있어요'
           : progress < 45 ? '전신 실루엣을 읽고 있어요' : progress < 78 ? '상황과 아이템 합을 비교하고 있어요' : 'OOTD 카드를 정리하고 있어요'
     return (
       <main className="phone-shell loading-screen">
@@ -545,7 +557,7 @@ export default function App() {
           <p>기본은 기존 사진에 스티커와 점수를 얹는 저비용 카드입니다. 고득점, 공유 버튼 클릭, 하루 1회 무료 같은 트리거에서만 AI 생성형 카드로 확장합니다.</p>
         </section>
 
-        <p className="privacy-note"><span>●</span> 현재 PoC에서는 선택한 사진을 서버로 전송하지 않습니다.</p>
+        <p className="privacy-note"><span>●</span> 사진은 저장하지 않고 분석 요청 중에만 로컬 AI 프록시로 전송합니다.</p>
       </main>
     )
   }
@@ -577,13 +589,13 @@ export default function App() {
         </div>
         {!sourceImage && <a className="photo-credit" href="https://unsplash.com/photos/u_pB8KRvk-U" target="_blank" rel="noreferrer">Photo: Branislav Rodman / Unsplash ↗</a>}
 
-        <div className={`ollama-card ${analysisSource === 'ollama' ? 'ready' : ''}`}>
+        <div className={`ollama-card ${analysisSource === 'ollama' || analysisSource === 'proxy' ? 'ready' : ''}`}>
           <div>
-            <strong>{analysisSource === 'ollama' ? '로컬 Ollama 분석 적용됨' : '기본 분석 적용 중'}</strong>
-            <p>{analysisSource === 'ollama' ? `${ollamaModel}가 업로드 사진을 읽고 한줄평과 개선 포인트를 보정했어요.` : isLocalOllamaAvailableFromThisOrigin() ? `Ollama가 실행 중이면 ${ollamaEndpoint}의 ${ollamaModel}로 사진 분석을 시도합니다.` : hostedOllamaMessage}</p>
+            <strong>{analysisSource === 'proxy' ? '배포 URL AI 분석 적용됨' : analysisSource === 'ollama' ? '로컬 Ollama 분석 적용됨' : '기본 분석 적용 중'}</strong>
+            <p>{analysisSource === 'proxy' ? `이 PC의 Ollama 프록시가 업로드 사진을 읽고 한줄평과 개선 포인트를 보정했어요.` : analysisSource === 'ollama' ? `${ollamaModel}가 업로드 사진을 읽고 한줄평과 개선 포인트를 보정했어요.` : isLocalOllamaAvailableFromThisOrigin() ? `Ollama가 실행 중이면 ${ollamaEndpoint}의 ${ollamaModel}로 사진 분석을 시도합니다.` : hostedOllamaMessage}</p>
             {ollamaError && <small>{ollamaError}</small>}
           </div>
-          <span>{analysisSource === 'ollama' ? 'LOCAL AI' : 'MOCK'}</span>
+          <span>{analysisSource === 'proxy' ? 'HOSTED AI' : analysisSource === 'ollama' ? 'LOCAL AI' : 'MOCK'}</span>
         </div>
 
         <div className="ai-trigger-card">

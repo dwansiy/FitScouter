@@ -48,7 +48,14 @@ npm run dev:web
 
 브라우저 앱은 기본적으로 `http://127.0.0.1:11434`에 요청합니다. GitHub Pages에서 로컬 Ollama를 호출하려면 브라우저/CORS 설정에 따라 `OLLAMA_ORIGINS` 설정이 필요할 수 있습니다.
 
-주의: GitHub Pages는 정적 파일 호스팅이라 Ollama 모델을 같이 배포하지 않습니다. 배포 URL에서는 기본 분석으로 동작하고, `LOCAL AI`는 같은 PC에서 `npm run dev:web`로 연 로컬 페이지에서 확인하는 것을 기본 경로로 봅니다. 운영 환경에서 배포 URL에서도 AI 분석을 쓰려면 별도 API 서버 또는 Ollama 프록시 서버가 필요합니다.
+GitHub Pages 배포 URL에서 이 PC의 Ollama를 사용하려면 Ollama를 인터넷에 직접 열지 말고 로컬 프록시를 사용합니다.
+
+```bash
+ollama serve
+npm run proxy:ollama
+```
+
+프록시는 기본적으로 `http://127.0.0.1:8787/api/analyze`에서 실행되고, GitHub Pages 페이지가 같은 PC 브라우저에서 열렸을 때 이 프록시를 통해 Ollama에 요청합니다. 외부 휴대폰이나 다른 PC에서도 쓰려면 Cloudflare Tunnel 같은 HTTPS 터널을 프록시에 연결한 뒤 GitHub Actions 변수 `VITE_AI_PROXY_URL`에 `https://<터널주소>/api/analyze`를 넣어 다시 배포합니다.
 
 로컬 보안 체크:
 
@@ -56,7 +63,8 @@ npm run dev:web
 - 같은 Wi-Fi의 휴대폰/다른 PC에서 테스트해야 할 때만 web workspace의 `dev:lan` 또는 `preview:lan`을 사용합니다.
 - Ollama는 기본값처럼 `127.0.0.1:11434`에만 열어두고, `OLLAMA_HOST=0.0.0.0`처럼 외부 네트워크에 노출하지 않습니다.
 - `OLLAMA_ORIGINS=*`는 피하고, 필요할 때만 `http://localhost:5173` 또는 실제 GitHub Pages origin처럼 신뢰하는 origin으로 제한합니다.
-- 업로드한 사진은 현재 서버에 저장하지 않고 브라우저에서 로컬 Ollama로만 전송됩니다. 외부 API로 전환할 때는 별도 개인정보 처리/저장 정책이 필요합니다.
+- 업로드한 사진은 현재 파일로 저장하지 않고 브라우저에서 로컬 프록시를 거쳐 Ollama로만 전송됩니다. 외부 API로 전환할 때는 별도 개인정보 처리/저장 정책이 필요합니다.
+- 프록시는 허용 origin, 요청 크기 제한, 간단한 IP rate limit을 적용합니다. 공개 서비스로 운영하려면 인증, 로깅 정책, abuse 방지 정책을 추가해야 합니다.
 
 중요한 한계:
 
