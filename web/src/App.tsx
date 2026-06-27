@@ -369,7 +369,7 @@ export default function App() {
     setOllamaError('')
     if (!isLocalOllamaAvailableFromThisOrigin()) {
       setOllamaStatus('unavailable')
-      setOllamaError(hostedOllamaMessage)
+      setOllamaError('')
       setOllamaAnalysis(null)
       setAnalysisSource('mock')
       return
