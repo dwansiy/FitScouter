@@ -6,6 +6,9 @@
     "web",
     "native"
   ],
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
   "scripts": {
     "dev:web": "npm --workspace @fitscouter/web run dev",
     "dev:native": "npm --workspace @fitscouter/native run start",
