@@ -24,7 +24,8 @@ const assetUrl = (fileName: string) => `${import.meta.env.BASE_URL}assets/${file
 const samplePhoto = assetUrl('sample-ootd.jpg')
 const ollamaEndpoint = 'http://127.0.0.1:11434'
 const ollamaModel = 'gemma3:4b'
-const defaultAiProxyEndpoint = 'http://127.0.0.1:8787/api/analyze'
+const defaultAiProxyEndpoint = 'https://tracker-suitable-revelation-foundation.trycloudflare.com/api/analyze'
+const localAiProxyEndpoint = 'http://127.0.0.1:8787/api/analyze'
 const configuredAiProxyEndpoint = String(import.meta.env.VITE_AI_PROXY_URL ?? '').trim()
 const hostedOllamaMessage = '이 PC에서 npm run proxy:ollama를 실행하면 배포 URL에서도 로컬 Ollama 분석을 사용할 수 있어요.'
 
@@ -297,6 +298,7 @@ function isLocalOllamaAvailableFromThisOrigin() {
 
 function getAiProxyEndpoint() {
   if (configuredAiProxyEndpoint) return configuredAiProxyEndpoint
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return localAiProxyEndpoint
   if (window.location.protocol === 'https:') return defaultAiProxyEndpoint
   return ''
 }

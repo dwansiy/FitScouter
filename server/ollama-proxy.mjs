@@ -43,6 +43,7 @@ function sendJson(res, statusCode, body, origin) {
   }
   if (origin && allowedOrigins.has(origin)) {
     headers['Access-Control-Allow-Origin'] = origin
+    headers['Access-Control-Allow-Private-Network'] = 'true'
     headers.Vary = 'Origin'
   }
   res.writeHead(statusCode, headers)
@@ -59,6 +60,7 @@ function sendCorsPreflight(req, res) {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Private-Network': 'true',
     'Access-Control-Max-Age': '600',
     Vary: 'Origin',
   })
@@ -174,7 +176,7 @@ const server = http.createServer(async (req, res) => {
     return
   }
   if (req.method === 'GET' && url.pathname === '/health') {
-    sendJson(res, 200, { ok: true, model, ollamaUrl }, req.headers.origin)
+    sendJson(res, 200, { ok: true, model }, req.headers.origin)
     return
   }
   if (req.method === 'POST' && url.pathname === '/api/analyze') {

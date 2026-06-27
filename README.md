@@ -55,7 +55,7 @@ ollama serve
 npm run proxy:ollama
 ```
 
-프록시는 기본적으로 `http://127.0.0.1:8787/api/analyze`에서 실행되고, GitHub Pages 페이지가 같은 PC 브라우저에서 열렸을 때 이 프록시를 통해 Ollama에 요청합니다. 외부 휴대폰이나 다른 PC에서도 쓰려면 Cloudflare Tunnel 같은 HTTPS 터널을 프록시에 연결한 뒤 GitHub Actions 변수 `VITE_AI_PROXY_URL`에 `https://<터널주소>/api/analyze`를 넣어 다시 배포합니다.
+프록시는 기본적으로 `http://127.0.0.1:8787/api/analyze`에서 실행됩니다. GitHub Pages처럼 HTTPS 배포 URL에서 쓰려면 Cloudflare Tunnel 같은 HTTPS 터널을 프록시에 연결해야 합니다. 현재 PoC 배포본은 임시 Cloudflare Tunnel URL을 기본 프록시로 사용하므로, 이 PC에서 `cloudflared tunnel --url http://127.0.0.1:8787` 프로세스가 살아 있어야 합니다. 터널 URL이 바뀌면 GitHub Actions 변수 `VITE_AI_PROXY_URL`에 `https://<터널주소>/api/analyze`를 넣고 다시 배포합니다.
 
 로컬 보안 체크:
 
