@@ -24,6 +24,7 @@ const assetUrl = (fileName: string) => `${import.meta.env.BASE_URL}assets/${file
 const samplePhoto = assetUrl('sample-ootd.jpg')
 const ollamaEndpoint = 'http://127.0.0.1:11434'
 const ollamaModel = 'gemma3:4b'
+const hostedOllamaMessage = 'GitHub Pages는 정적 배포라 로컬 Ollama 모델이 포함되지 않습니다. PC에서 npm run dev:web로 열면 LOCAL AI를 확인할 수 있어요.'
 
 const scenarios: Array<{ id: ScenarioId; label: string; hint: string }> = [
   { id: 'date', label: '소개팅', hint: '첫인상 집중' },
@@ -252,13 +253,20 @@ function Brand() {
 
 function TryOnOverlay({ variant }: { variant: Variant }) {
   if (variant === 'base') return null
+  const label = variant === 'derby' ? 'BLACK DERBY' : variant === 'scarf' ? 'TONED MUFFLER' : 'STRUCTURED BAG'
+  const message = variant === 'derby'
+    ? '신발 라인을 블랙 더비로 교체한 미리보기'
+    : variant === 'scarf'
+      ? '목 주변에 톤 다운 머플러를 얹은 미리보기'
+      : '로고백 대신 구조감 있는 가방을 얹은 미리보기'
   return (
     <div className={`tryon-overlay tryon-${variant}`} aria-hidden="true">
+      <div className="tryon-status"><span>APPLIED</span><strong>{label}</strong><small>{message}</small></div>
       {variant === 'derby' && (
         <>
           <span className="shoe left" />
           <span className="shoe right" />
-          <b>BLACK DERBY TRY-ON</b>
+          <span className="tryon-target target-feet">신발 변경</span>
         </>
       )}
       {variant === 'scarf' && (
@@ -266,18 +274,23 @@ function TryOnOverlay({ variant }: { variant: Variant }) {
           <span className="scarf-main" />
           <span className="scarf-tail left" />
           <span className="scarf-tail right" />
-          <b>MUFFLER TRY-ON</b>
+          <span className="tryon-target target-neck">머플러 추가</span>
         </>
       )}
       {variant === 'bag' && (
         <>
           <span className="bag-strap" />
           <span className="bag-body" />
-          <b>STRUCTURED BAG TRY-ON</b>
+          <span className="tryon-target target-bag">가방 교체</span>
         </>
       )}
     </div>
   )
+}
+
+function isLocalOllamaAvailableFromThisOrigin() {
+  const host = window.location.hostname
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === ''
 }
 
 export default function App() {
@@ -297,6 +310,7 @@ export default function App() {
   const [aiModeUnlocked, setAiModeUnlocked] = useState(false)
   const cameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
+  const storyRef = useRef<HTMLDivElement>(null)
 
   const selectedImprovement = improvements.find((item) => item.id === variant)
   const score = Math.min(10000, Math.max(0, 8610 + (selectedImprovement?.gain ?? 0) + (ollamaAnalysis?.scoreDelta ?? 0)))
@@ -353,6 +367,13 @@ export default function App() {
   async function runOllamaAnalysis() {
     setOllamaStatus('checking')
     setOllamaError('')
+    if (!isLocalOllamaAvailableFromThisOrigin()) {
+      setOllamaStatus('unavailable')
+      setOllamaError(hostedOllamaMessage)
+      setOllamaAnalysis(null)
+      setAnalysisSource('mock')
+      return
+    }
     try {
       const imageBase64 = sourceBase64 ?? await imageUrlToBase64(samplePhoto)
       setOllamaStatus('analyzing')
@@ -433,9 +454,11 @@ export default function App() {
   }
 
   function applyImprovement(next: Exclude<Variant, 'base'>) {
+    const item = improvements.find((improvement) => improvement.id === next)
     setVariant(next)
     setSheet(null)
-    setToast('추천 아이템을 카드에 반영했어요')
+    window.setTimeout(() => storyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+    setToast(`${item?.title ?? '추천 아이템'} 적용 완료: 카드 상단 미리보기를 확인하세요`)
   }
 
   if (screen === 'loading') {
@@ -541,7 +564,7 @@ export default function App() {
       </section>
 
       <section className="story-card" aria-label="생성된 OOTD 카드">
-        <div className={`story-photo variant-${variant}`}>
+        <div ref={storyRef} className={`story-photo variant-${variant}`}>
           <img src={visibleImage} alt={selectedImprovement ? `${selectedImprovement.title} 제안이 반영된 OOTD 미리보기` : '오늘의 OOTD 전신 이미지'} />
           <TryOnOverlay variant={variant} />
           <div className="story-gradient" />
@@ -557,7 +580,7 @@ export default function App() {
         <div className={`ollama-card ${analysisSource === 'ollama' ? 'ready' : ''}`}>
           <div>
             <strong>{analysisSource === 'ollama' ? '로컬 Ollama 분석 적용됨' : '기본 분석 적용 중'}</strong>
-            <p>{analysisSource === 'ollama' ? `${ollamaModel}가 업로드 사진을 읽고 한줄평과 개선 포인트를 보정했어요.` : `Ollama가 실행 중이면 ${ollamaEndpoint}의 ${ollamaModel}로 사진 분석을 시도합니다.`}</p>
+            <p>{analysisSource === 'ollama' ? `${ollamaModel}가 업로드 사진을 읽고 한줄평과 개선 포인트를 보정했어요.` : isLocalOllamaAvailableFromThisOrigin() ? `Ollama가 실행 중이면 ${ollamaEndpoint}의 ${ollamaModel}로 사진 분석을 시도합니다.` : hostedOllamaMessage}</p>
             {ollamaError && <small>{ollamaError}</small>}
           </div>
           <span>{analysisSource === 'ollama' ? 'LOCAL AI' : 'MOCK'}</span>

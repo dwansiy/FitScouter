@@ -48,6 +48,8 @@ npm run dev:web
 
 브라우저 앱은 기본적으로 `http://127.0.0.1:11434`에 요청합니다. GitHub Pages에서 로컬 Ollama를 호출하려면 브라우저/CORS 설정에 따라 `OLLAMA_ORIGINS` 설정이 필요할 수 있습니다.
 
+주의: GitHub Pages는 정적 파일 호스팅이라 Ollama 모델을 같이 배포하지 않습니다. 배포 URL에서는 기본 분석으로 동작하고, `LOCAL AI`는 같은 PC에서 `npm run dev:web`로 연 로컬 페이지에서 확인하는 것을 기본 경로로 봅니다. 운영 환경에서 배포 URL에서도 AI 분석을 쓰려면 별도 API 서버 또는 Ollama 프록시 서버가 필요합니다.
+
 로컬 보안 체크:
 
 - 기본 `npm run dev:web`와 `npm run preview:web`는 localhost에만 바인딩됩니다.
